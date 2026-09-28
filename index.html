@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wordle Word Finder</title>
+  <link rel="stylesheet" href="style.css?v=1.8.0">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Wordle Word Finder</h1>
+      <p>Enter what you know, then search the local English word lists.</p>
+    </header>
+
+    <section class="panel controls" aria-label="Word constraints">
+      <div class="field short-field">
+        <label for="wordLength">Number of letters</label>
+        <input id="wordLength" type="number" min="2" max="20" value="5" inputmode="numeric">
+      </div>
+
+      <section class="constraint-group" aria-labelledby="knownInfoHeading">
+        <div class="group-heading">
+          <h2 id="knownInfoHeading">Known information</h2>
+          <span>Direct facts from the puzzle</span>
+        </div>
+
+        <div class="field">
+          <label>Known letter positions</label>
+          <div id="letterBoxes" class="letter-boxes" aria-label="Known letter positions"></div>
+          <div class="hint">Leave a box blank if that position is unknown. Use Tab / Shift+Tab to move between letter boxes.</div>
+        </div>
+
+        <div class="field">
+          <label for="requiredLetters">Known letters, unknown position</label>
+          <input id="requiredLetters" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. RST">
+          <div class="hint">These are additional known occurrences whose positions are unknown. If a letter also appears in a known position, entering it here means it occurs again.</div>
+        </div>
+
+        <div class="section-button-row">
+          <button id="clearKnownButton" class="secondary-button compact-button" type="button">Clear known information</button>
+        </div>
+      </section>
+
+      <div class="field">
+        <label for="triedWords">Words already tried</label>
+        <input id="triedWords" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. CRANE, SLATE, POINT">
+        <div class="hint">Separate words with spaces or commas. Exact guesses are excluded. Their letter positions are also used to infer known non-positions for the stricter result list when the Known information above is complete.</div>
+      </div>
+
+      <section id="inferredGroup" class="constraint-group inferred-group automatic-mode" aria-labelledby="inferredInfoHeading">
+        <div class="group-heading">
+          <h2 id="inferredInfoHeading">Inferred information</h2>
+          <span id="inferredModeStatus">Automatic mode</span>
+        </div>
+
+        <label class="manual-mode-toggle" for="manualInferredMode">
+          <input id="manualInferredMode" type="checkbox">
+          <span>Allow manual editing of inferred information</span>
+        </label>
+        <div class="hint inferred-mode-hint">Unchecked: <strong>Find matches</strong> automatically recalculates these fields before every search. Checked: automatic updating stops and you control these fields manually.</div>
+
+        <div id="inferredEditableControls" class="inferred-editable-controls">
+          <div class="field">
+            <label for="singleOccurrenceLetters">Letters known not to occur multiple times</label>
+            <input id="singleOccurrenceLetters" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. RST" disabled>
+            <div class="hint">Each entered letter may occur at most once in a matching word.</div>
+          </div>
+
+          <div class="field">
+            <label for="excludedLetters">Letters ruled out</label>
+            <input id="excludedLetters" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. AEO" disabled>
+          </div>
+
+          <div class="field">
+            <label for="untriedLetters">Letters not tried yet</label>
+            <input id="untriedLetters" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. LMNP" disabled>
+            <div class="hint">Used to rank valid matches. Words testing more untried letters appear first.</div>
+          </div>
+
+          <div class="section-button-row">
+            <button id="updateInferredButton" class="secondary-button compact-button" type="button" title="Recalculate all three inferred fields. Requires complete Known letter positions and Known letters data for reliable inference." disabled>Update inferred fields</button>
+          </div>
+        </div>
+        <div class="helper-warning"><strong>Important:</strong> Reliable inference requires <strong>Known letter positions</strong> and <strong>Known letters, unknown position</strong> to contain all positive information from the tried words. In automatic mode, <strong>Find matches</strong> clears and recalculates all three inferred fields first. In manual mode, only <strong>Update inferred fields</strong> recalculates them. If the same letter is entered in both known sections, the occurrences are additive.</div>
+      </section>
+
+      <div class="button-row">
+        <button id="searchButton" type="button">Find matches</button>
+        <button id="clearButton" class="secondary-button" type="button">Clear inputs</button>
+      </div>
+      <div id="message" class="message" role="alert" aria-live="polite"></div>
+    </section>
+
+    <section class="panel results-panel" aria-live="polite">
+      <div class="results-heading">
+        <h2>Possible matches</h2>
+      </div>
+      <div id="lengthCount" class="length-count">Words of this length in database: —</div>
+      <div id="loading" class="loading">Loading local word lists…</div>
+      <div id="comparisonSummary" class="comparison-summary"></div>
+
+      <section class="result-set strict-result-set" aria-labelledby="strictResultsHeading">
+        <div class="result-set-heading">
+          <div>
+            <h3 id="strictResultsHeading">Position-aware matches</h3>
+            <p>Applies all normal constraints, then also rules out positions where a known-present letter was already tried and can safely be inferred to have been in the wrong position.</p>
+          </div>
+          <span id="strictCount" class="result-set-count"></span>
+        </div>
+        <div id="positionRuleSummary" class="position-rule-summary">Run a search to see inferred known non-positions.</div>
+        <ol id="strictResults" class="results"></ol>
+      </section>
+
+      <section class="result-set baseline-result-set" aria-labelledby="baselineResultsHeading">
+        <div class="result-set-heading">
+          <div>
+            <h3 id="baselineResultsHeading">Matches ignoring tried-word positions</h3>
+            <p>This is the previous v1.6 matching logic. Tried words are excluded as exact guesses and can affect inferred letters, but their letter positions do not eliminate candidates.</p>
+          </div>
+          <span id="baselineCount" class="result-set-count"></span>
+        </div>
+        <ol id="baselineResults" class="results"></ol>
+      </section>
+    </section>
+    <footer class="site-footer" aria-label="Application statistics">
+      <span id="footerStats">Version 1.8.0 · loading database</span>
+    </footer>
+  </main>
+  <script src="app.js?v=1.8.0"></script>
+</body>
+</html>
