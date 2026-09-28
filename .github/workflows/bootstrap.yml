@@ -32,10 +32,9 @@ jobs:
           rm -rf /tmp/wordle-unpack
           mkdir -p /tmp/wordle-unpack
           unzip -q /tmp/wordle-helper.zip -d /tmp/wordle-unpack
-          shopt -s dotglob nullglob
-          cp -a /tmp/wordle-unpack/wordle-helper-v1.8.0/. .
+          rsync -a --exclude='.github' /tmp/wordle-unpack/wordle-helper-v1.8.0/ ./
+          chmod +x setup.sh start.sh
           rm -rf .bootstrap
-          rm -f .github/workflows/bootstrap.yml
 
       - name: Publish source tree
         shell: bash
