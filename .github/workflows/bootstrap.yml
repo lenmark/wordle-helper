@@ -1,0 +1,78 @@
+name: Bootstrap and deploy Wordle Helper
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/bootstrap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Reconstruct source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/chunk-*.txt > /tmp/wordle-helper.b64
+          base64 --decode /tmp/wordle-helper.b64 > /tmp/wordle-helper.zip
+          rm -rf /tmp/wordle-unpack
+          mkdir -p /tmp/wordle-unpack
+          unzip -q /tmp/wordle-helper.zip -d /tmp/wordle-unpack
+          shopt -s dotglob nullglob
+          cp -a /tmp/wordle-unpack/wordle-helper-v1.8.0/. .
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap.yml
+
+      - name: Publish source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish Wordle Helper v1.8.0"
+          git push
+
+      - name: Download and prepare word lists
+        run: ./setup.sh
+
+      - name: Prepare static site
+        run: |
+          mkdir -p _site
+          cp index.html app.js style.css .nojekyll _site/
+          cp -R data _site/data
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: bootstrap
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
