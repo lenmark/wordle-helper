@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const DISPLAY_LIMIT = 500;
 
 const els = {
@@ -252,22 +252,25 @@ function inferKnownNonPositions(pattern, required, triedWords) {
 
   for (const guess of triedWords) {
     if (guess.length !== pattern.length) continue;
-    const guessCounts = countLetters(guess);
 
     for (let i = 0; i < guess.length; i++) {
       const ch = guess[i];
-      const knownCount = knownMinimum.get(ch) || 0;
 
-      // Only infer a yellow/non-position when every occurrence of this letter
-      // in this guess is accounted for by the complete positive information.
-      // If the guess contains more copies than we know are present, some of
-      // those tiles may have been gray and the aggregate inputs do not tell us
-      // which occurrence was the positive one.
-      if (!knownCount || guessCounts.get(ch) > knownCount) continue;
+      // We only need positional rules for letters known to occur somewhere in
+      // the answer. Globally ruled-out letters are already handled elsewhere.
+      if (!(knownMinimum.get(ch) || 0)) continue;
 
-      // A known fixed position is either the green tile itself (same letter) or
-      // already excludes this letter (different fixed letter). In either case
-      // there is no additional non-position rule to infer for this position.
+      // The Known letter positions field is assumed complete. Therefore, if a
+      // tried occurrence were green at this position, pattern[i] would contain
+      // that letter. A blank pattern position proves that this occurrence was
+      // not green, even when the guess contains duplicate copies of the letter.
+      //
+      // This is why REFER + one known E can safely rule E out at both attempted
+      // E positions that are still blank. We do not need to decide which
+      // duplicate tile was yellow and which was gray: neither was green.
+      //
+      // If this position is already fixed (to this or another letter), an
+      // additional non-position rule would be redundant.
       if (pattern[i]) continue;
 
       if (!nonPositions.has(ch)) nonPositions.set(ch, new Set());
