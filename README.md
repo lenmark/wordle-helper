@@ -1,10 +1,10 @@
-# Wordle Word Finder v1.8.0
+# Wordle Word Finder v1.8.1
 
-Version 1.8.0 adds automatic inferred-information refresh by default. The Inferred information section is read-only/greyed out unless **Allow manual editing of inferred information** is checked. In automatic mode, **Find matches** recalculates the three inferred fields before searching. In manual mode, search uses the fields exactly as shown and only **Update inferred fields** recalculates them. Matching rules are otherwise unchanged from v1.7.0.
+Version 1.8.1 fixes position-aware inference for repeated letters in tried words. When Known letter positions is complete, every occurrence of a known-present letter that was tried in a still-blank position is safely known not to belong in that position, even if the guess contained duplicate copies. For example, with fixed pattern `_ U _ _ _`, known letter `E`, and tried word `REFER`, the second `E` attempt proves `E ≠ position 4`.
 
 # Wordle Word Finder
 
-Current app version: **1.8.0**
+Current app version: **1.8.1**
 
 A local, dependency-free Wordle word finder. The application is plain HTML/CSS/JavaScript and uses Python 3 only to download the word lists and serve the files locally.
 
